@@ -65,6 +65,7 @@ const state = {
   people: [],
   history: [],
   selectedPerson: null,
+  selectedPurchaseType: null,
   unsubscribeGroup: null,
   unsubscribePeople: null,
   unsubscribeHistory: null
@@ -95,6 +96,7 @@ const elements = {
   currentGroupName: document.querySelector("#current-group-name"),
   coffeeUnitPrice: document.querySelector("#coffee-unit-price"),
   packSummary: document.querySelector("#pack-summary"),
+  sugarSummary: document.querySelector("#sugar-summary"),
 
   peopleList: document.querySelector("#people-list"),
   emptyPeople: document.querySelector("#empty-people"),
@@ -118,7 +120,9 @@ const elements = {
   priceModal: document.querySelector("#price-modal"),
   packPriceInput: document.querySelector("#pack-price"),
   capsuleCountInput: document.querySelector("#capsule-count"),
+  sugarPriceInput: document.querySelector("#sugar-price"),
   calculatedUnitPrice: document.querySelector("#calculated-unit-price"),
+  calculatedSugarPrice: document.querySelector("#calculated-sugar-price"),
   savePriceButton: document.querySelector("#save-price-button"),
 
   purchaseModal: document.querySelector("#purchase-modal"),
@@ -137,6 +141,7 @@ const elements = {
 
   leaveGroupModal: document.querySelector("#leave-group-modal"),
   leaveGroupMessage: document.querySelector("#leave-group-message"),
+  purchaseTitle: document.querySelector("#purchase-title"),
   personDetailsModal: document.querySelector("#person-details-modal"),
   personDetailsTitle: document.querySelector("#person-details-title"),
   personDetailsCoffeeCount: document.querySelector(
@@ -145,8 +150,11 @@ const elements = {
   personDetailsBalance: document.querySelector(
     "#person-details-balance"
   ),
-  personDetailsPurchases: document.querySelector(
-    "#person-details-purchases"
+  personDetailsCapsulePurchases: document.querySelector(
+    "#person-details-capsule-purchases"
+  ),
+  personDetailsSugarPurchases: document.querySelector(
+    "#person-details-sugar-purchases"
   ),
   editPersonNameInput: document.querySelector("#edit-person-name"),
   savePersonNameButton: document.querySelector(
@@ -370,6 +378,7 @@ async function createGroup() {
       packPriceCents: 0,
       capsuleCount: 0,
       coffeePriceCents: 0,
+      sugarPriceCents: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -630,6 +639,7 @@ function renderGroup() {
   const packPriceCents = state.group.packPriceCents || 0;
   const capsuleCount = state.group.capsuleCount || 0;
   const coffeePriceCents = state.group.coffeePriceCents || 0;
+  const sugarPriceCents = state.group.sugarPriceCents || 0;
 
   elements.currentGroupName.textContent =
     state.group.name || "Gruppo";
@@ -642,8 +652,12 @@ function renderGroup() {
       `${capsuleCount} capsule per ${formatMoney(packPriceCents)}`;
   } else {
     elements.packSummary.textContent =
-      "Prezzo delle capsule non configurato";
+      "Prezzo capsule non configurato";
   }
+
+  elements.sugarSummary.textContent = sugarPriceCents > 0
+    ? `Zucchero: ${formatMoney(sugarPriceCents)} per acquisto`
+    : "Prezzo zucchero non configurato";
 }
 
 /*
@@ -820,8 +834,12 @@ function openLeaveGroupModal() {
 function openPersonDetails(person) {
   state.selectedPerson = person;
 
-  const purchaseCount = state.history.filter(event => {
+  const capsulePurchaseCount = state.history.filter(event => {
     return event.type === "capsules-purchased" && event.personId === person.id;
+  }).length;
+
+  const sugarPurchaseCount = state.history.filter(event => {
+    return event.type === "sugar-purchased" && event.personId === person.id;
   }).length;
 
   elements.personDetailsTitle.textContent = person.name;
@@ -831,7 +849,12 @@ function openPersonDetails(person) {
   elements.personDetailsBalance.textContent = formatMoney(
     person.balanceCents || 0
   );
-  elements.personDetailsPurchases.textContent = String(purchaseCount);
+  elements.personDetailsCapsulePurchases.textContent = String(
+    capsulePurchaseCount
+  );
+  elements.personDetailsSugarPurchases.textContent = String(
+    sugarPurchaseCount
+  );
   elements.editPersonNameInput.value = person.name || "";
 
   openModal(elements.personDetailsModal);
@@ -1092,22 +1115,42 @@ function renderPeople() {
       changeCoffee(person, 1);
     });
 
-    const purchaseButton =
+    const capsulePurchaseButton =
       document.createElement("button");
 
-    purchaseButton.className = "purchase-button";
-    purchaseButton.type = "button";
-    purchaseButton.textContent = "Capsule";
+    capsulePurchaseButton.className = "purchase-button";
+    capsulePurchaseButton.type = "button";
+    capsulePurchaseButton.textContent = "Capsule";
+    capsulePurchaseButton.setAttribute(
+      "aria-label",
+      `Registra acquisto capsule di ${person.name}`
+    );
 
-    purchaseButton.addEventListener("click", () => {
-      askRegisterPurchase(person);
+    capsulePurchaseButton.addEventListener("click", () => {
+      askRegisterPurchase(person, "capsules");
+    });
+
+    const sugarPurchaseButton =
+      document.createElement("button");
+
+    sugarPurchaseButton.className = "purchase-button sugar";
+    sugarPurchaseButton.type = "button";
+    sugarPurchaseButton.textContent = "Zucchero";
+    sugarPurchaseButton.setAttribute(
+      "aria-label",
+      `Registra acquisto zucchero di ${person.name}`
+    );
+
+    sugarPurchaseButton.addEventListener("click", () => {
+      askRegisterPurchase(person, "sugar");
     });
 
     controls.append(
       removeCoffeeButton,
       counter,
       addCoffeeButton,
-      purchaseButton
+      capsulePurchaseButton,
+      sugarPurchaseButton
     );
 
     row.append(heading, controls);
@@ -1132,6 +1175,13 @@ function openPriceModal() {
   elements.capsuleCountInput.value =
     group.capsuleCount || "";
 
+  elements.sugarPriceInput.value =
+    group.sugarPriceCents > 0
+      ? (group.sugarPriceCents / 100)
+          .toFixed(2)
+          .replace(".", ",")
+      : "";
+
   updateCalculatedPrice();
   openModal(elements.priceModal);
 }
@@ -1142,6 +1192,14 @@ function updateCalculatedPrice() {
 
   const capsuleCount =
     Number(elements.capsuleCountInput.value);
+
+  const sugarPriceCents =
+    parseEuroToCents(elements.sugarPriceInput.value);
+
+  elements.calculatedSugarPrice.textContent =
+    sugarPriceCents !== null && sugarPriceCents >= 0
+      ? formatMoney(sugarPriceCents)
+      : "0,00 €";
 
   if (
     packPriceCents === null ||
@@ -1167,6 +1225,10 @@ async function savePrice() {
   const capsuleCount =
     Number(elements.capsuleCountInput.value);
 
+  const sugarInput = elements.sugarPriceInput.value.trim();
+  const sugarPriceCents =
+    parseEuroToCents(sugarInput);
+
   if (
     packPriceCents === null ||
     packPriceCents <= 0
@@ -1184,6 +1246,17 @@ async function savePrice() {
   ) {
     showToast(
       "Inserisci un numero valido di capsule.",
+      true
+    );
+    return;
+  }
+
+  if (
+    sugarInput &&
+    (sugarPriceCents === null || sugarPriceCents < 0)
+  ) {
+    showToast(
+      "Inserisci un prezzo valido per lo zucchero.",
       true
     );
     return;
@@ -1219,20 +1292,23 @@ async function savePrice() {
       packPriceCents,
       capsuleCount,
       coffeePriceCents,
+      sugarPriceCents: sugarPriceCents || 0,
       updatedAt: serverTimestamp()
     });
 
     batch.set(historyReference, {
       type: "price-updated",
-      title: "Prezzo capsule aggiornato",
+      title: "Prezzi aggiornati",
       detail:
         `${capsuleCount} capsule per ` +
         `${formatMoney(packPriceCents)}` +
-        `, ${formatMoney(coffeePriceCents)} a caffè`,
+        `, ${formatMoney(coffeePriceCents)} a caffè; ` +
+        `zucchero: ${formatMoney(sugarPriceCents || 0)} per acquisto`,
 
       packPriceCents,
       capsuleCount,
       coffeePriceCents,
+      sugarPriceCents: sugarPriceCents || 0,
       createdAt: serverTimestamp(),
       createdBy: state.user.uid
     });
@@ -1257,16 +1333,19 @@ async function savePrice() {
 }
 
 /*
- * Acquisto capsule
+ * Acquisti capsule e zucchero
  */
 
-function askRegisterPurchase(person) {
-  const packPriceCents =
-    Number(state.group?.packPriceCents) || 0;
+function askRegisterPurchase(person, purchaseType) {
+  const isSugarPurchase = purchaseType === "sugar";
+  const purchaseAmountCents = isSugarPurchase
+    ? Number(state.group?.sugarPriceCents) || 0
+    : Number(state.group?.packPriceCents) || 0;
+  const purchaseLabel = isSugarPurchase ? "zucchero" : "capsule";
 
-  if (packPriceCents <= 0) {
+  if (purchaseAmountCents <= 0) {
     showToast(
-      "Configura prima il prezzo delle capsule.",
+      `Configura prima il prezzo di ${purchaseLabel}.`,
       true
     );
 
@@ -1275,23 +1354,30 @@ function askRegisterPurchase(person) {
   }
 
   state.selectedPerson = person;
+  state.selectedPurchaseType = purchaseType;
 
+  elements.purchaseTitle.textContent =
+    `Conferma acquisto ${purchaseLabel}`;
   elements.purchaseMessage.textContent =
-    `${person.name} ha comprato una confezione da ` +
-    `${formatMoney(packPriceCents)}?`;
+    `${person.name} ha comprato ${purchaseLabel} per ` +
+    `${formatMoney(purchaseAmountCents)}?`;
 
   openModal(elements.purchaseModal);
 }
 
 async function registerPurchase() {
   const person = state.selectedPerson;
-  const packPriceCents =
-    Number(state.group?.packPriceCents) || 0;
+  const purchaseType = state.selectedPurchaseType || "capsules";
+  const isSugarPurchase = purchaseType === "sugar";
+  const purchaseAmountCents = isSugarPurchase
+    ? Number(state.group?.sugarPriceCents) || 0
+    : Number(state.group?.packPriceCents) || 0;
+  const purchaseLabel = isSugarPurchase ? "zucchero" : "capsule";
 
   if (
     !person ||
     !state.groupId ||
-    packPriceCents <= 0
+    purchaseAmountCents <= 0
   ) {
     return;
   }
@@ -1326,17 +1412,19 @@ async function registerPurchase() {
       const currentPerson = personSnapshot.data();
 
       transaction.update(personReference, {
-        balanceCents: increment(-packPriceCents),
+        balanceCents: increment(-purchaseAmountCents),
         updatedAt: serverTimestamp()
       });
 
       transaction.set(historyReference, {
-        type: "capsules-purchased",
+        type: isSugarPurchase
+          ? "sugar-purchased"
+          : "capsules-purchased",
         title:
-          `${currentPerson.name} ha comprato le capsule`,
+          `${currentPerson.name} ha comprato ${purchaseLabel}`,
 
-        detail: `-${formatMoney(packPriceCents)}`,
-        amountCents: -packPriceCents,
+        detail: `-${formatMoney(purchaseAmountCents)}`,
+        amountCents: -purchaseAmountCents,
         personId: person.id,
         personName: currentPerson.name,
         createdAt: serverTimestamp(),
@@ -1346,6 +1434,7 @@ async function registerPurchase() {
 
     closeModal(elements.purchaseModal);
     state.selectedPerson = null;
+    state.selectedPurchaseType = null;
 
     showToast("Acquisto registrato.");
   } catch (error) {
@@ -1404,6 +1493,9 @@ function getHistoryIcon(type) {
 
     case "capsules-purchased":
       return "▣";
+
+    case "sugar-purchased":
+      return "◇";
 
     case "price-updated":
       return "€";
@@ -1553,6 +1645,11 @@ elements.packPriceInput.addEventListener(
 );
 
 elements.capsuleCountInput.addEventListener(
+  "input",
+  updateCalculatedPrice
+);
+
+elements.sugarPriceInput.addEventListener(
   "input",
   updateCalculatedPrice
 );

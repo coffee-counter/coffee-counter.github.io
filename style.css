@@ -390,7 +390,9 @@ p {
 }
 
 .price-summary-description {
+  display: grid;
   grid-column: 1 / -1;
+  gap: 3px;
   margin-top: 11px;
   color: #fde68a;
   font-size: 12px;
@@ -487,6 +489,7 @@ p {
 
 .person-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -536,6 +539,19 @@ p {
   color: #000000;
   font-size: 13px;
   font-weight: 650;
+}
+
+.purchase-button:hover {
+  background: var(--surface-secondary);
+}
+
+.purchase-button.sugar {
+  border-color: #d6a84f;
+  background: #fff8e1;
+}
+
+.purchase-button.sugar:hover {
+  background: #ffefbd;
 }
 
 .empty-state {
@@ -690,7 +706,7 @@ p {
 
 .person-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin: 18px 0 24px;
 }
@@ -754,6 +770,19 @@ p {
   background: var(--primary-light);
   color: var(--text);
   font-size: 14px;
+}
+
+.calculated-price-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calculated-price-line + .calculated-price-line {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid rgb(180 83 9 / 18%);
 }
 
 .toast {

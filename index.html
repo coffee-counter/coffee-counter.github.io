@@ -131,8 +131,9 @@
 
               <div class="price-summary-icon" aria-hidden="true">☕</div>
 
-              <div id="pack-summary" class="price-summary-description">
-                Prezzo non configurato
+              <div class="price-summary-description">
+                <span id="pack-summary">Prezzo capsule non configurato</span>
+                <span id="sugar-summary">Prezzo zucchero non configurato</span>
               </div>
             </div>
 
@@ -294,8 +295,12 @@
             <span>Saldo</span>
           </div>
           <div class="stat-card">
-            <strong id="person-details-purchases">0</strong>
-            <span>Acquisti</span>
+            <strong id="person-details-capsule-purchases">0</strong>
+            <span>Acquisti capsule</span>
+          </div>
+          <div class="stat-card">
+            <strong id="person-details-sugar-purchases">0</strong>
+            <span>Acquisti zucchero</span>
           </div>
         </div>
 
@@ -373,7 +378,7 @@
       </div>
     </div>
 
-    <!-- Finestra prezzo capsule -->
+    <!-- Finestra prezzi capsule e zucchero -->
     <div
       id="price-modal"
       class="modal hidden"
@@ -385,7 +390,7 @@
 
       <div class="modal-content">
         <div class="modal-header">
-          <h2 id="price-title">Prezzo delle capsule</h2>
+          <h2 id="price-title">Prezzi capsule e zucchero</h2>
 
           <button
             class="icon-button"
@@ -422,9 +427,29 @@
           placeholder="30"
         />
 
+        <label for="sugar-price"> Prezzo per un acquisto di zucchero </label>
+
+        <div class="money-input-container">
+          <span>€</span>
+
+          <input
+            id="sugar-price"
+            type="text"
+            inputmode="decimal"
+            placeholder="1,00"
+            autocomplete="off"
+          />
+        </div>
+
         <div class="calculated-price">
-          Un caffè costa
-          <strong id="calculated-unit-price">0,00 €</strong>
+          <div class="calculated-price-line">
+            <span>Un caffè costa</span>
+            <strong id="calculated-unit-price">0,00 €</strong>
+          </div>
+          <div class="calculated-price-line">
+            <span>Un acquisto di zucchero costa</span>
+            <strong id="calculated-sugar-price">0,00 €</strong>
+          </div>
         </div>
 
         <button
@@ -464,7 +489,7 @@
         <p id="purchase-message"></p>
 
         <div class="information-box">
-          Il prezzo della confezione verrà sottratto automaticamente dal saldo
+          L'importo dell'acquisto verrà sottratto automaticamente dal saldo
           della persona.
         </div>
 
