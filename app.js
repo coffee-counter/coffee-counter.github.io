@@ -437,6 +437,8 @@ async function joinGroup() {
     "Accesso..."
   );
 
+  let operation = "lettura dell'invito";
+
   try {
     const inviteReference = doc(db, "invites", inviteCode);
     const inviteSnapshot = await getDoc(inviteReference);
@@ -462,25 +464,31 @@ async function joinGroup() {
       state.user.uid
     );
 
+    operation = "ingresso nel gruppo";
+
     await setDoc(memberReference, {
       uid: state.user.uid,
       inviteCode,
       joinedAt: serverTimestamp()
     });
 
-    await addDoc(
-      collection(db, "groups", groupId, "history"),
-      {
-        type: "member-joined",
-        title: "Un dispositivo è entrato nel gruppo",
-        detail: "",
-        createdAt: serverTimestamp(),
-        createdBy: state.user.uid
-      }
-    );
-
     saveCurrentGroup(groupId);
     await openGroup(groupId);
+
+    try {
+      await addDoc(
+        collection(db, "groups", groupId, "history"),
+        {
+          type: "member-joined",
+          title: "Un dispositivo è entrato nel gruppo",
+          detail: "",
+          createdAt: serverTimestamp(),
+          createdBy: state.user.uid
+        }
+      );
+    } catch (historyError) {
+      console.error("Join history could not be recorded", historyError);
+    }
 
     showToast("Sei entrato nel gruppo.");
   } catch (error) {
@@ -488,12 +496,12 @@ async function joinGroup() {
 
     if (error.code === "permission-denied") {
       showToast(
-        "Codice non valido o accesso negato.",
+        `Accesso negato durante ${operation}. Pubblica le regole aggiornate di Firestore.`,
         true
       );
     } else {
       showToast(
-        "Non è stato possibile entrare nel gruppo.",
+        `Errore durante ${operation}. Riprova.`,
         true
       );
     }
