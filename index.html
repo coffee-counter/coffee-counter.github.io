@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+
+    <meta
+      name="description"
+      content="Contatore condiviso per i caffè del gruppo"
+    />
+
+    <meta name="theme-color" content="#92400e" />
+
+    <title>Contatore Caffè</title>
+
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+
+  <body>
+    <div id="loading-screen" class="loading-screen">
+      <div class="loading-spinner"></div>
+      <p>Caricamento...</p>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+
+    <main id="app" class="app hidden">
+      <!-- Schermata iniziale -->
+      <section id="home-screen" class="screen">
+        <div class="home-container">
+          <header class="home-header">
+            <div class="logo" aria-hidden="true">☕</div>
+
+            <h1>Contatore Caffè</h1>
+
+            <p>Gestisci i caffè del gruppo in modo semplice.</p>
+          </header>
+
+          <div class="panel">
+            <section class="form-section">
+              <h2>Crea un nuovo gruppo</h2>
+
+              <label for="group-name"> Nome del gruppo </label>
+
+              <input
+                id="group-name"
+                type="text"
+                maxlength="80"
+                placeholder="Per esempio: Caffè in ufficio"
+                autocomplete="off"
+              />
+
+              <button
+                id="create-group-button"
+                class="button button-primary button-full"
+                type="button"
+              >
+                Crea gruppo
+              </button>
+            </section>
+
+            <div class="separator">
+              <span></span>
+              <strong>OPPURE</strong>
+              <span></span>
+            </div>
+
+            <section class="form-section">
+              <h2>Entra in un gruppo</h2>
+
+              <label for="invite-code"> Codice privato </label>
+
+              <input
+                id="invite-code"
+                class="code-input"
+                type="text"
+                placeholder="Incolla il codice di invito"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+              />
+
+              <button
+                id="join-group-button"
+                class="button button-secondary button-full"
+                type="button"
+              >
+                Entra nel gruppo
+              </button>
+            </section>
+          </div>
+
+          <p class="home-note">Non è necessario creare un account.</p>
+        </div>
+      </section>
+
+      <!-- Schermata gruppo -->
+      <section id="group-screen" class="screen hidden">
+        <header class="app-header">
+          <div>
+            <div class="header-label">GRUPPO CAFFÈ</div>
+            <h1 id="current-group-name">Gruppo</h1>
+          </div>
+
+          <button
+            id="leave-group-button"
+            class="button button-secondary leave-group-button"
+            type="button"
+            aria-label="Esci dal gruppo"
+            title="Esci dal gruppo"
+          >
+            Esci dal gruppo
+          </button>
+        </header>
+
+        <div class="content">
+          <!-- Scheda contatori -->
+          <section id="counter-tab">
+            <div class="price-summary">
+              <div>
+                <div class="price-summary-label">Prezzo per caffè</div>
+
+                <div id="coffee-unit-price" class="price-summary-value">
+                  0,00 €
+                </div>
+              </div>
+
+              <div class="price-summary-icon" aria-hidden="true">☕</div>
+
+              <div id="pack-summary" class="price-summary-description">
+                Prezzo non configurato
+              </div>
+            </div>
+
+            <div class="section-header">
+              <div>
+                <h2>Persone</h2>
+                <p>Tocca + quando qualcuno prende un caffè.</p>
+              </div>
+
+              <button
+                id="open-add-person-button"
+                class="button button-secondary button-small"
+                type="button"
+              >
+                + Persona
+              </button>
+            </div>
+
+            <div id="people-list" class="people-list"></div>
+
+            <div id="empty-people" class="empty-state hidden">
+              <strong>Nessuna persona</strong>
+
+              <p>Aggiungi la prima persona del gruppo.</p>
+            </div>
+          </section>
+
+          <!-- Scheda cronologia -->
+          <section id="history-tab" class="hidden">
+            <div class="section-header">
+              <div>
+                <h2>Cronologia</h2>
+                <p>Attività del gruppo dalla più recente.</p>
+              </div>
+            </div>
+
+            <div id="history-list" class="history-list"></div>
+
+            <div id="empty-history" class="empty-state hidden">
+              <strong>Nessuna attività</strong>
+
+              <p>Le operazioni appariranno qui.</p>
+            </div>
+          </section>
+        </div>
+
+        <nav class="bottom-navigation" aria-label="Navigazione principale">
+          <button
+            id="counter-tab-button"
+            class="navigation-button active"
+            type="button"
+          >
+            <span aria-hidden="true">☕</span>
+            <span>Contatori</span>
+          </button>
+
+          <button
+            id="history-tab-button"
+            class="navigation-button"
+            type="button"
+          >
+            <span aria-hidden="true">☷</span>
+            <span>Cronologia</span>
+          </button>
+
+          <button id="invite-button" class="navigation-button" type="button">
+            <span aria-hidden="true">⧉</span>
+            <span>Invita</span>
+          </button>
+
+          <button id="price-button" class="navigation-button" type="button">
+            <span aria-hidden="true">€</span>
+            <span>Prezzo</span>
+          </button>
+        </nav>
+      </section>
+    </main>
+
+    <!-- Finestra conferma uscita dal gruppo -->
+    <div
+      id="leave-group-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="leave-group-title"
+    >
+      <div class="modal-backdrop" data-close-modal="leave-group-modal"></div>
+
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="leave-group-title">Esci dal gruppo?</h2>
+
+          <button
+            class="icon-button"
+            type="button"
+            data-close-modal="leave-group-modal"
+            aria-label="Chiudi"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p id="leave-group-message">
+          Non vedrai più questo gruppo all'apertura del sito. I dati condivisi
+          non verranno eliminati.
+        </p>
+
+        <div class="modal-actions">
+          <button
+            class="button button-secondary"
+            type="button"
+            data-close-modal="leave-group-modal"
+          >
+            Annulla
+          </button>
+
+          <button
+            id="confirm-leave-group-button"
+            class="button button-danger"
+            type="button"
+          >
+            Esci dal gruppo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finestra dettagli persona -->
+    <div
+      id="person-details-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="person-details-title"
+    >
+      <div class="modal-backdrop" data-close-modal="person-details-modal"></div>
+
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="person-details-title">Dettagli persona</h2>
+
+          <button
+            class="icon-button"
+            type="button"
+            data-close-modal="person-details-modal"
+            aria-label="Chiudi"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="person-stats" aria-label="Statistiche persona">
+          <div class="stat-card">
+            <strong id="person-details-coffee-count">0</strong>
+            <span>Caffè</span>
+          </div>
+          <div class="stat-card">
+            <strong id="person-details-balance">0,00 €</strong>
+            <span>Saldo</span>
+          </div>
+          <div class="stat-card">
+            <strong id="person-details-purchases">0</strong>
+            <span>Acquisti</span>
+          </div>
+        </div>
+
+        <h3 class="modal-section-title">Cambia nome</h3>
+
+        <label for="edit-person-name">Nome</label>
+
+        <input
+          id="edit-person-name"
+          type="text"
+          maxlength="80"
+          placeholder="Nome della persona"
+          autocomplete="off"
+        />
+
+        <button
+          id="save-person-name-button"
+          class="button button-primary button-full"
+          type="button"
+        >
+          Salva nome
+        </button>
+
+        <button
+          id="open-remove-person-button"
+          class="button button-danger button-full details-remove-button"
+          type="button"
+        >
+          Rimuovi persona
+        </button>
+      </div>
+    </div>
+
+
+    <div
+      id="add-person-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-person-title"
+    >
+      <div class="modal-backdrop" data-close-modal="add-person-modal"></div>
+
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="add-person-title">Aggiungi una persona</h2>
+
+          <button
+            class="icon-button"
+            type="button"
+            data-close-modal="add-person-modal"
+            aria-label="Chiudi"
+          >
+            ✕
+          </button>
+        </div>
+
+        <label for="person-name">Nome</label>
+
+        <input
+          id="person-name"
+          type="text"
+          maxlength="80"
+          placeholder="Nome della persona"
+          autocomplete="off"
+        />
+
+        <button
+          id="add-person-button"
+          class="button button-primary button-full"
+          type="button"
+        >
+          Aggiungi persona
+        </button>
+      </div>
+    </div>
+
+    <!-- Finestra prezzo capsule -->
+    <div
+      id="price-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="price-title"
+    >
+      <div class="modal-backdrop" data-close-modal="price-modal"></div>
+
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="price-title">Prezzo delle capsule</h2>
+
+          <button
+            class="icon-button"
+            type="button"
+            data-close-modal="price-modal"
+            aria-label="Chiudi"
+          >
+            ✕
+          </button>
+        </div>
+
+        <label for="pack-price"> Prezzo totale della confezione </label>
+
+        <div class="money-input-container">
+          <span>€</span>
+
+          <input
+            id="pack-price"
+            type="text"
+            inputmode="decimal"
+            placeholder="12,60"
+            autocomplete="off"
+          />
+        </div>
+
+        <label for="capsule-count"> Numero di capsule </label>
+
+        <input
+          id="capsule-count"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          step="1"
+          placeholder="30"
+        />
+
+        <div class="calculated-price">
+          Un caffè costa
+          <strong id="calculated-unit-price">0,00 €</strong>
+        </div>
+
+        <button
+          id="save-price-button"
+          class="button button-primary button-full"
+          type="button"
+        >
+          Salva prezzo
+        </button>
+      </div>
+    </div>
+
+    <!-- Finestra conferma acquisto -->
+    <div
+      id="purchase-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="purchase-title"
+    >
+      <div class="modal-backdrop" data-close-modal="purchase-modal"></div>
+
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="purchase-title">Conferma acquisto</h2>
+
+          <button
+            class="icon-button"
+            type="button"
+            data-close-modal="purchase-modal"
+            aria-label="Chiudi"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p id="purchase-message"></p>
+
+        <div class="information-box">
+          Il prezzo della confezione verrà sottratto automaticamente dal saldo
+          della persona.
+        </div>
+
+        <div class="modal-actions">
+          <button
+            class="button button-secondary"
+            type="button"
+            data-close-modal="purchase-modal"
+          >
+            Annulla
+          </button>
+
+          <button
+            id="confirm-purchase-button"
+            class="button button-primary"
+            type="button"
+          >
+            Conferma
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finestra conferma rimozione -->
+    <div
+      id="remove-person-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="remove-person-title"
+    >
+      <div class="modal-backdrop" data-close-modal="remove-person-modal"></div>
+
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="remove-person-title">Rimuovi persona</h2>
+
+          <button
+            class="icon-button"
+            type="button"
+            data-close-modal="remove-person-modal"
+            aria-label="Chiudi"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p id="remove-person-message"></p>
+
+        <div class="modal-actions">
+          <button
+            class="button button-secondary"
+            type="button"
+            data-close-modal="remove-person-modal"
+          >
+            Annulla
+          </button>
+
+          <button
+            id="confirm-remove-person-button"
+            class="button button-danger"
+            type="button"
+          >
+            Rimuovi
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
